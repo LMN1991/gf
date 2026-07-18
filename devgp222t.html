@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DevGPT</title>
+<style>
+  :root {
+    --bg: #0b0b0c;
+    --bg-panel: #121213;
+    --bg-elev: #1a1a1c;
+    --bg-elev-2: #202023;
+    --border: #262629;
+    --border-soft: #1e1e21;
+    --red: #d81f2a;
+    --red-bright: #f23b45;
+    --red-dark: #8f141b;
+    --red-tint: rgba(216, 31, 42, 0.12);
+    --text: #ececed;
+    --text-mid: #b4b4b8;
+    --text-dim: #6f6f76;
+    --ok: #3fb772;
+    --radius: 10px;
+    --radius-sm: 7px;
+    --mono: "JetBrains Mono", "SF Mono", "Consolas", ui-monospace, monospace;
+    --sans: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  svg { display: block; }
+
+  /* ---------- Sidebar ---------- */
+  .sidebar {
+    width: 292px;
+    min-width: 292px;
+    background: var(--bg-panel);
+    border-right: 1px solid var(--border-soft);
+    display: flex;
+    flex-direction: column;
+    padding: 20px 18px;
+    overflow-y: auto;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    margin-bottom: 3px;
+  }
+  .brand-mark {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--red-bright);
+    position: relative;
+  }
+  .brand-mark::after {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: 9px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    pointer-events: none;
+  }
+  .brand-name {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+  }
+  .brand-name .accent { color: var(--red); }
+  .brand-sub {
+    color: var(--text-dim);
+    font-size: 12px;
+    margin: 3px 0 22px 1px;
+    letter-spacing: 0.2px;
+  }
+
+  .section-label {
+    font-size: 10.5px;
+    text-transform: uppercase;
+    letter-spacing: 1.3px;
+    color: var(--text-dim);
+    margin: 20px 2px 9px;
+    font-weight: 600;
+  }
+  .section-label:first-of-type { margin-top: 4px; }
+
+  label {
+    font-size: 12.5px;
+    color: var(--text-mid);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 11px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-family: inherit;
+    transition: border-color 0.14s ease, background 0.14s ease;
+  }
+  input::placeholder, textarea::placeholder { color: var(--text-dim); }
+  input:hover, select:hover, textarea:hover { border-color: #33333a; }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--red);
+    background: var(--bg-elev-2);
+  }
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236f6f76' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 11px center;
+    padding-right: 30px;
+  }
+  textarea { resize: vertical; min-height: 72px; line-height: 1.5; }
+
+  .field { margin-bottom: 13px; }
+
+  .key-row { display: flex; gap: 6px; }
+  .key-row input {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 12px;
+    letter-spacing: 0.3px;
+  }
+  .icon-btn {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    border-radius: var(--radius-sm);
+    padding: 0 11px;
+    cursor: pointer;
+    display: flex; align-items: center;
+    transition: color 0.14s, border-color 0.14s;
+  }
+  .icon-btn:hover { color: var(--text); border-color: #33333a; }
+
+  .range-row { display: flex; align-items: center; gap: 12px; }
+  .range-row input[type=range] {
+    flex: 1;
+    accent-color: var(--red);
+    height: 4px;
+    padding: 0;
+    background: transparent;
+    border: none;
+  }
+  .range-row input[type=range]:hover { border: none; }
+  .range-val {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--text);
+    min-width: 30px;
+    text-align: right;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 2px 0;
+  }
+
+  .hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 5px;
+    line-height: 1.5;
+  }
+  .hint a, .brand-sub a { color: var(--text-mid); }
+
+  .sidebar-footer { margin-top: auto; padding-top: 18px; }
+  .btn-clear {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-mid);
+    padding: 9px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 12.5px;
+    font-family: inherit;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    transition: border-color 0.14s, color 0.14s, background 0.14s;
+  }
+  .btn-clear:hover { border-color: var(--red-dark); color: var(--red-bright); background: var(--red-tint); }
+
+  .status-line {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text-mid);
+    margin-top: 16px;
+    padding: 9px 11px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-sm);
+  }
+  .status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--text-dim); flex-shrink: 0;
+  }
+  .status-dot.ok { background: var(--ok); }
+  .status-dot.err { background: var(--red); }
+
+  /* ---------- Main / Chat ---------- */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .topbar {
+    height: 54px;
+    border-bottom: 1px solid var(--border-soft);
+    display: flex;
+    align-items: center;
+    padding: 0 22px;
+    gap: 12px;
+    background: var(--bg-panel);
+  }
+  .pill {
+    font-size: 12px; color: var(--text-mid);
+    border: 1px solid var(--border); border-radius: 6px;
+    padding: 4px 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .pill .dot-red { width: 6px; height: 6px; border-radius: 50%; background: var(--red); }
+  .pill b { color: var(--text); font-weight: 600; }
+
+  .chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 0;
+  }
+  .chat-inner { max-width: 780px; margin: 0 auto; padding: 0 24px; }
+
+  .empty {
+    text-align: center;
+    margin-top: 11vh;
+  }
+  .empty-mark {
+    width: 52px; height: 52px; margin: 0 auto 20px;
+    border-radius: 13px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--red-bright);
+  }
+  .empty h2 { font-size: 23px; color: var(--text); margin-bottom: 7px; font-weight: 700; letter-spacing: -0.3px; }
+  .empty p { color: var(--text-dim); font-size: 14px; }
+  .suggestions {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    max-width: 540px; margin: 28px auto 0;
+  }
+  .sugg {
+    background: var(--bg-panel); border: 1px solid var(--border-soft);
+    border-radius: var(--radius); padding: 13px 14px; text-align: left;
+    cursor: pointer; font-size: 12.5px; color: var(--text-dim);
+    transition: border-color 0.14s, background 0.14s;
+    display: flex; gap: 11px; align-items: flex-start;
+  }
+  .sugg:hover { border-color: var(--border); background: var(--bg-elev); }
+  .sugg .sg-ico { color: var(--red); margin-top: 1px; flex-shrink: 0; }
+  .sugg b { color: var(--text); display: block; margin-bottom: 2px; font-weight: 600; font-size: 12.5px; }
+
+  .msg { display: flex; gap: 15px; margin-bottom: 26px; }
+  .avatar {
+    width: 32px; height: 32px; min-width: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .avatar.user { background: var(--bg-elev); border: 1px solid var(--border); color: var(--text-mid); }
+  .avatar.ai { background: var(--bg-elev); border: 1px solid var(--red-dark); color: var(--red-bright); }
+  .msg .role {
+    font-size: 11.5px; color: var(--text-dim); margin-bottom: 5px;
+    font-weight: 600; letter-spacing: 0.2px;
+  }
+  .msg.ai .role { color: var(--red); }
+  .bubble {
+    flex: 1;
+    padding: 3px 0;
+    line-height: 1.65;
+    font-size: 14.5px;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .bubble pre {
+    background: #0c0c0d; border: 1px solid var(--border);
+    border-radius: 8px; padding: 13px 14px; overflow-x: auto;
+    margin: 10px 0; font-size: 13px; line-height: 1.55;
+  }
+  .bubble code {
+    background: var(--bg-elev); padding: 2px 6px; border-radius: 4px;
+    font-family: var(--mono); font-size: 12.5px; color: var(--red-bright);
+  }
+  .bubble pre code { background: none; padding: 0; color: #dcdce0; font-family: var(--mono); }
+
+  .typing { display: inline-flex; gap: 4px; padding: 6px 0; }
+  .typing span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--red); animation: blink 1.3s infinite;
+  }
+  .typing span:nth-child(2) { animation-delay: 0.18s; }
+  .typing span:nth-child(3) { animation-delay: 0.36s; }
+  @keyframes blink { 0%,60%,100% { opacity: 0.2; } 30% { opacity: 1; } }
+
+  /* ---------- Composer ---------- */
+  .composer {
+    border-top: 1px solid var(--border-soft);
+    padding: 16px 24px 18px;
+    background: var(--bg-panel);
+  }
+  .composer-inner { max-width: 780px; margin: 0 auto; }
+  .input-box {
+    display: flex; gap: 10px; align-items: flex-end;
+    background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: 13px; padding: 8px 8px 8px 15px;
+    transition: border-color 0.14s;
+  }
+  .input-box:focus-within { border-color: var(--red); }
+  .input-box textarea {
+    flex: 1; background: none; border: none; padding: 8px 0;
+    max-height: 200px; min-height: 24px; font-size: 14.5px; line-height: 1.5;
+  }
+  .input-box textarea:hover, .input-box textarea:focus { border: none; background: none; }
+  .send-btn {
+    background: var(--red);
+    border: none; color: #fff; width: 40px; height: 40px;
+    border-radius: 9px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.14s, transform 0.08s;
+  }
+  .send-btn:hover:not(:disabled) { background: var(--red-bright); }
+  .send-btn:active:not(:disabled) { transform: scale(0.94); }
+  .send-btn:disabled { background: var(--bg-elev-2); color: var(--text-dim); cursor: not-allowed; }
+  .composer .foot {
+    font-size: 11px; color: var(--text-dim); text-align: center; margin-top: 11px;
+    display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap;
+  }
+  kbd {
+    font-family: var(--mono); font-size: 10.5px;
+    background: var(--bg-elev); border: 1px solid var(--border);
+    border-bottom-width: 2px; border-radius: 4px;
+    padding: 1px 5px; color: var(--text-mid);
+  }
+  .foot .sep { opacity: 0.5; }
+
+  ::-webkit-scrollbar { width: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #262629; border-radius: 5px; border: 2px solid var(--bg); }
+  ::-webkit-scrollbar-thumb:hover { background: #33333a; }
+
+  @media (max-width: 760px) {
+    .sidebar { position: absolute; z-index: 20; height: 100%; transform: translateX(-100%); transition: transform 0.2s; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+    .sidebar.open { transform: translateX(0); }
+    .suggestions { grid-template-columns: 1fr; }
+    .menu-btn { display: flex !important; }
+  }
+  .menu-btn { display: none; background: var(--bg-elev); border: 1px solid var(--border); color: var(--text); border-radius: var(--radius-sm); width: 34px; height: 34px; cursor: pointer; align-items: center; justify-content: center; }
+</style>
+</head>
+<body>
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 6 3 12 8 18"/><polyline points="16 6 21 12 16 18"/></svg>
+      </div>
+      <div>
+        <div class="brand-name">Dev<span class="accent">GPT</span></div>
+      </div>
+    </div>
+    <div class="brand-sub">Asystent programisty · capi.aerolink.lat</div>
+
+    <div class="section-label">Klucz API</div>
+    <div class="field">
+      <label id="keyLabel">API Key</label>
+      <div class="key-row">
+        <input type="password" id="apiKey" placeholder="sk-…" autocomplete="off" spellcheck="false">
+        <button class="icon-btn" id="toggleKey" title="Pokaż / ukryj klucz">
+          <svg id="eyeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <div class="hint" id="keyHint">Przechowywany tylko lokalnie w przeglądarce (localStorage). API: capi.aerolink.lat</div>
+    </div>
+
+    <div class="section-label">Model</div>
+    <div class="field">
+      <select id="model">
+        <option value="claude-opus-4-8">Claude Opus 4.8 — najmocniejszy</option>
+        <option value="claude-sonnet-5">Claude Sonnet 5 — zbalansowany</option>
+        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — najszybszy</option>
+      </select>
+      <button class="btn-clear" id="refreshModels" style="margin-top:8px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+        Pobierz listę modeli
+      </button>
+    </div>
+
+    <div class="field">
+      <label>Kreatywność <span style="color:var(--text-dim)">(temperature)</span></label>
+      <div class="range-row">
+        <input type="range" id="temp" min="0" max="1" step="0.1" value="0.7">
+        <span class="range-val" id="tempVal">0.7</span>
+      </div>
+      <div class="hint">0 — precyzyjny i deterministyczny · 1 — kreatywny i zróżnicowany</div>
+    </div>
+
+    <div class="field">
+      <label>Maks. długość odpowiedzi (tokeny)</label>
+      <input type="number" id="maxTokens" value="4096" min="256" max="16000" step="256">
+    </div>
+
+    <div class="section-label">Rola asystenta</div>
+    <div class="field">
+      <textarea id="systemPrompt">Jesteś DevGPT — ekspertem programistą. Odpowiadasz konkretnie, po polsku, z przykładami kodu. Piszesz czysty, bezpieczny kod i wyjaśniasz swoje decyzje.</textarea>
+    </div>
+
+    <div class="section-label">Tryb pracy</div>
+    <div class="field">
+      <select id="mode">
+        <option value="chat">Czat ogólny</option>
+        <option value="code">Pisanie kodu</option>
+        <option value="debug">Debugowanie</option>
+        <option value="explain">Wyjaśnianie kodu</option>
+        <option value="review">Code review</option>
+        <option value="translate">Tłumaczenie kodu</option>
+      </select>
+    </div>
+
+    <div class="status-line">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Wpisz klucz API</span>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="btn-clear" id="clearChat">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+        Wyczyść rozmowę
+      </button>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main class="main">
+    <div class="topbar">
+      <button class="menu-btn" id="menuBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="pill"><span class="dot-red"></span>Model: <b id="modelPill">Opus 4.8</b></div>
+      <div style="flex:1"></div>
+      <div class="pill" id="msgCount">0 wiadomości</div>
+    </div>
+
+    <div class="chat" id="chat">
+      <div class="chat-inner" id="chatInner">
+        <div class="empty" id="empty">
+          <div class="empty-mark">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 6 3 12 8 18"/><polyline points="16 6 21 12 16 18"/></svg>
+          </div>
+          <h2>W czym pomóc?</h2>
+          <p>Zadaj pytanie albo zacznij od jednego z pomysłów.</p>
+          <div class="suggestions">
+            <div class="sugg" data-p="Napisz funkcję w Pythonie sprawdzającą czy liczba jest pierwsza">
+              <span class="sg-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+              <span><b>Napisz kod</b>Funkcja sprawdzająca liczbę pierwszą</span>
+            </div>
+            <div class="sugg" data-p="Wyjaśnij czym jest async/await w JavaScript">
+              <span class="sg-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span>
+              <span><b>Wyjaśnij</b>Jak działa async/await w JS</span>
+            </div>
+            <div class="sugg" data-p="Znajdź błąd w tym kodzie: for(let i=0;i<=arr.length;i++){console.log(arr[i])}">
+              <span class="sg-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="6" width="8" height="14" rx="4"/><path d="M19 7l-3 2M5 7l3 2M12 2v4M4 13H2M22 13h-2M6 19l-2 2M18 19l2 2"/></svg></span>
+              <span><b>Debuguj</b>Znajdź błąd w pętli</span>
+            </div>
+            <div class="sugg" data-p="Jak zoptymalizować zapytanie SQL z wieloma JOIN?">
+              <span class="sg-ico"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></svg></span>
+              <span><b>Doradź</b>Optymalizacja zapytania SQL</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="composer-inner">
+        <div class="input-box">
+          <textarea id="input" placeholder="Napisz wiadomość do DevGPT…" rows="1"></textarea>
+          <button class="send-btn" id="sendBtn" title="Wyślij (Enter)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+        <div class="foot">
+          <span>DevGPT może się mylić — weryfikuj ważny kod.</span>
+          <span class="sep">·</span>
+          <span><kbd>Enter</kbd> wysyła</span>
+          <span class="sep">·</span>
+          <span><kbd>Shift</kbd>+<kbd>Enter</kbd> nowa linia</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const apiKeyEl = $('apiKey'), modelEl = $('model'), tempEl = $('temp'),
+        tempVal = $('tempVal'), maxTokensEl = $('maxTokens'), systemEl = $('systemPrompt'),
+        modeEl = $('mode'), inputEl = $('input'), sendBtn = $('sendBtn'),
+        chatInner = $('chatInner'), chatEl = $('chat'), emptyEl = $('empty'),
+        statusDot = $('statusDot'), statusText = $('statusText'),
+        modelPill = $('modelPill'), msgCount = $('msgCount'),
+        refreshBtn = $('refreshModels');
+
+  // Bazowy adres API
+  const API_BASE = 'https://capi.aerolink.lat/v1';
+
+  let messages = []; // {role, content}
+
+  // Ikony SVG dla awatarów
+  const ICON = {
+    user: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+    ai: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 6 3 12 8 18"/><polyline points="16 6 21 12 16 18"/></svg>'
+  };
+
+  // ---- Persistencja ustawień ----
+  const store = {
+    load() {
+      apiKeyEl.value   = localStorage.getItem('devgpt_key') || '';
+      const savedModel = localStorage.getItem('devgpt_model');
+      if (savedModel && [...modelEl.options].some(o => o.value === savedModel)) modelEl.value = savedModel;
+      tempEl.value     = localStorage.getItem('devgpt_temp')   || '0.7';
+      maxTokensEl.value= localStorage.getItem('devgpt_max')    || '4096';
+      systemEl.value   = localStorage.getItem('devgpt_system') || systemEl.value;
+      updateTemp(); updateStatus(); updatePill();
+    },
+    save() {
+      localStorage.setItem('devgpt_key', apiKeyEl.value);
+      localStorage.setItem('devgpt_model', modelEl.value);
+      localStorage.setItem('devgpt_temp', tempEl.value);
+      localStorage.setItem('devgpt_max', maxTokensEl.value);
+      localStorage.setItem('devgpt_system', systemEl.value);
+    }
+  };
+
+  function fillModels(list) {
+    modelEl.innerHTML = '';
+    list.forEach(([val, label]) => {
+      const o = document.createElement('option');
+      o.value = val; o.textContent = label;
+      modelEl.appendChild(o);
+    });
+  }
+
+  const modePrompts = {
+    chat: '',
+    code: '\n\nSkup się na napisaniu kompletnego, działającego kodu z komentarzami.',
+    debug: '\n\nDziałaj jak debugger: znajdź przyczynę błędu, wyjaśnij ją i podaj poprawkę.',
+    explain: '\n\nWyjaśnij kod krok po kroku, prostym językiem, dla osoby uczącej się.',
+    review: '\n\nZrób code review: wskaż problemy z bezpieczeństwem, wydajnością i czytelnością.',
+    translate: '\n\nPrzetłumacz lub przepisz kod między językami programowania zachowując logikę.'
+  };
+
+  function updateTemp() { tempVal.textContent = tempEl.value; }
+  function updatePill() { modelPill.textContent = modelEl.options[modelEl.selectedIndex].text.split(' —')[0].replace('Claude ',''); }
+  function updateStatus() {
+    if (apiKeyEl.value.trim().startsWith('sk-')) {
+      statusDot.className = 'status-dot ok'; statusText.textContent = 'Gotowy do pracy';
+    } else if (apiKeyEl.value.trim()) {
+      statusDot.className = 'status-dot err'; statusText.textContent = 'Klucz wygląda niepoprawnie';
+    } else {
+      statusDot.className = 'status-dot'; statusText.textContent = 'Wpisz klucz API';
+    }
+  }
+
+  // ---- Prosty renderer markdown (kod + inline) ----
+  function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function renderMarkdown(text) {
+    let html = escapeHtml(text);
+    html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) =>
+      `<pre><code>${code.replace(/\n$/,'')}</code></pre>`);
+    html = html.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+    html = html.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+    return html;
+  }
+
+  function scrollDown(){ chatEl.scrollTop = chatEl.scrollHeight; }
+
+  function addMessageEl(role, content) {
+    if (emptyEl) { emptyEl.remove(); }
+    const wrap = document.createElement('div');
+    wrap.className = 'msg ' + role;
+    wrap.innerHTML = `
+      <div class="avatar ${role}">${role === 'user' ? ICON.user : ICON.ai}</div>
+      <div style="flex:1;min-width:0">
+        <div class="role">${role === 'user' ? 'Ty' : 'DevGPT'}</div>
+        <div class="bubble"></div>
+      </div>`;
+    const bubble = wrap.querySelector('.bubble');
+    if (content === '__typing__') {
+      bubble.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+    } else {
+      bubble.innerHTML = renderMarkdown(content);
+    }
+    chatInner.appendChild(wrap);
+    scrollDown();
+    return bubble;
+  }
+
+  function updateCount(){
+    const n = messages.length;
+    msgCount.textContent = n + (n === 1 ? ' wiadomość' : (n % 10 >= 2 && n % 10 <= 4 && (n < 10 || n > 20) ? ' wiadomości' : ' wiadomości'));
+  }
+
+  // ---- Wysyłanie do Anthropic API ----
+  async function send() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+    const key = apiKeyEl.value.trim();
+    if (!key) { alert('Najpierw wpisz klucz API w panelu po lewej.'); apiKeyEl.focus(); return; }
+
+    store.save();
+    inputEl.value = ''; autoGrow();
+    sendBtn.disabled = true;
+
+    messages.push({ role: 'user', content: text });
+    addMessageEl('user', text);
+    updateCount();
+
+    const typingBubble = addMessageEl('ai', '__typing__');
+    const system = systemEl.value + (modePrompts[modeEl.value] || '');
+
+    try {
+      const res = await fetch(API_BASE + '/messages', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': key,
+          'Authorization': 'Bearer ' + key,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: modelEl.value,
+          max_tokens: parseInt(maxTokensEl.value) || 4096,
+          temperature: parseFloat(tempEl.value),
+          system: system,
+          messages: messages.map(m => ({ role: m.role, content: m.content }))
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err.error?.message || err.message || ('HTTP ' + res.status);
+        if (/额度|quota|insufficient/i.test(msg)) msg = 'Brak środków / limitu na koncie. Sprawdź swój klucz API.';
+        throw new Error(msg);
+      }
+
+      const data = await res.json();
+      const reply = (data.content || []).map(b => b.text || '').join('');
+      typingBubble.innerHTML = renderMarkdown(reply);
+      messages.push({ role: 'assistant', content: reply });
+      updateCount();
+      scrollDown();
+    } catch (e) {
+      typingBubble.innerHTML = `<span style="color:var(--red-bright)">Błąd: ${escapeHtml(e.message)}</span>
+        <div class="hint" style="margin-top:6px">Sprawdź klucz API, model i połączenie. Uwaga: niektóre przeglądarki mogą blokować bezpośrednie wywołania (CORS).</div>`;
+      messages.pop(); // usuń wiadomość użytkownika z historii, by można było spróbować ponownie
+    } finally {
+      sendBtn.disabled = false;
+      inputEl.focus();
+    }
+  }
+
+  // ---- Autosize textarea ----
+  function autoGrow() {
+    inputEl.style.height = 'auto';
+    inputEl.style.height = Math.min(inputEl.scrollHeight, 200) + 'px';
+  }
+
+  // ---- Eventy ----
+  sendBtn.addEventListener('click', send);
+  inputEl.addEventListener('input', autoGrow);
+  inputEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+  tempEl.addEventListener('input', updateTemp);
+  [apiKeyEl, modelEl, tempEl, maxTokensEl, systemEl].forEach(el =>
+    el.addEventListener('change', () => { store.save(); updateStatus(); updatePill(); }));
+  apiKeyEl.addEventListener('input', updateStatus);
+
+  // Pobieranie listy modeli (GET /v1/models)
+  refreshBtn.addEventListener('click', async () => {
+    const key = apiKeyEl.value.trim();
+    if (!key) { alert('Najpierw wpisz klucz API.'); apiKeyEl.focus(); return; }
+    refreshBtn.disabled = true;
+    try {
+      const res = await fetch(API_BASE + '/models', {
+        headers: {
+          'x-api-key': key,
+          'Authorization': 'Bearer ' + key,
+          'anthropic-version': '2023-06-01'
+        }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const data = await res.json();
+      const ids = (data.data || []).map(m => m.id).sort();
+      if (!ids.length) throw new Error('Pusta lista modeli');
+      fillModels(ids.map(id => [id, id]));
+      store.save(); updatePill();
+      statusDot.className = 'status-dot ok';
+      statusText.textContent = 'Załadowano ' + ids.length + ' modeli';
+    } catch (e) {
+      alert('Nie udało się pobrać modeli: ' + e.message + '\nSprawdź klucz API.');
+    } finally {
+      refreshBtn.disabled = false;
+    }
+  });
+
+  const eyeOpen = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const eyeOff = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c6.5 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68M6.6 6.6C4.06 8.11 2 12 2 12s3.5 7 10 7a9.12 9.12 0 0 0 3.4-.65"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><line x1="2" y1="2" x2="22" y2="22"/></svg>';
+  $('toggleKey').addEventListener('click', () => {
+    const showing = apiKeyEl.type === 'password';
+    apiKeyEl.type = showing ? 'text' : 'password';
+    $('toggleKey').innerHTML = showing ? eyeOff : eyeOpen;
+  });
+
+  $('clearChat').addEventListener('click', () => {
+    if (!messages.length || confirm('Wyczyścić całą rozmowę?')) {
+      messages = [];
+      chatInner.innerHTML = '';
+      location.reload();
+    }
+  });
+
+  document.querySelectorAll('.sugg').forEach(s =>
+    s.addEventListener('click', () => { inputEl.value = s.dataset.p; autoGrow(); inputEl.focus(); }));
+
+  $('menuBtn').addEventListener('click', () => $('sidebar').classList.toggle('open'));
+
+  store.load();
+})();
+</script>
+</body>
+</html>
